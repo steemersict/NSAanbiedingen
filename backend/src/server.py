@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -27,11 +28,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Store PDF generation jobs in memory (in production, use a proper queue)
+jobs: Dict[str, dict] = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup/shutdown events."""
+    # Startup
+    logger.info("NSAanbiedingen backend starting up...")
+    cleanup_temp_files()  # Clean up old PDFs on startup
+    yield
+    # Shutdown
+    logger.info("NSAanbiedingen backend shutting down...")
+
+
 # Create FastAPI app
 app = FastAPI(
     title="NSAanbiedingen Backend",
     description="PDF generation service for offer folders",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Add CORS middleware for browser dev mode
@@ -42,16 +59,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Store PDF generation jobs in memory (in production, use a proper queue)
-jobs: Dict[str, dict] = {}
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Called when server starts up."""
-    logger.info("NSAanbiedingen backend starting up...")
-    cleanup_temp_files()  # Clean up old PDFs on startup
 
 
 @app.get("/health", response_model=HealthResponse)

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **NSAanbiedingen** is a hybrid desktop application for generating professional PDF offer folders (aanbiedingenfolders) with visual drag-and-drop editing and print-ready output.
 
 - **Frontend:** Astro (Static Site Generator with React island for the editor), TypeScript, TailwindCSS, Nano Stores
-- **Backend:** Python 3.11+, FastAPI, WeasyPrint (PDF rendering), PyInstaller (compilation)
+- **Backend:** Python 3.9+, FastAPI, fpdf2 (PDF rendering), PyInstaller (compilation)
 - **Core Runtime:** Rust (Tauri v2), acts as process orchestrator
 - **Architecture:** Sidecar pattern (Python backend runs as external compiled executable)
 
@@ -30,7 +30,7 @@ Python FastAPI Backend (Sidecar) - PDF generation engine
 3. **Binary Naming:** Compiled Python executable must include target triple (e.g., `backend-x86_64-pc-windows-msvc.exe`)
 4. **Island Architecture:** Only the editor component is interactive React; rest is static HTML
 5. **Port Discovery:** Python prints `SERVER_PORT=<PORT>` to stdout with `flush=True` for real-time detection
-6. **PDF via WeasyPrint:** Converts Astro-generated HTML/CSS to print-ready PDFs with CMYK/bleeds support
+6. **PDF via fpdf2:** Pure Python PDF library without GTK dependencies, supports grid/list/featured layouts
 
 ## Critical Constraints
 
@@ -47,7 +47,8 @@ Python FastAPI Backend (Sidecar) - PDF generation engine
 - **Dynamic port binding:** Always use `socket.bind(('127.0.0.1', 0))` for ephemeral port allocation
 - **Port communication:** Print `SERVER_PORT=<PORT>` with `flush=True` after port assignment
 - **Uvicorn async:** Use ASGI mode for concurrent requests
-- **WeasyPrint dependencies:** GTK3 libraries must be bundled (via PyInstaller hooks) on Windows; system-provided on Linux/macOS
+- **fpdf2:** Pure Python PDF library - no external dependencies required
+- **CORS:** Enabled for localhost:4321 in dev mode
 - **No hardcoded ports:** Port 8000 or fixed ports will cause conflicts
 
 ### Frontend Requirements
@@ -60,63 +61,59 @@ Python FastAPI Backend (Sidecar) - PDF generation engine
 
 ## Development Workflow
 
-### Setup Commands (Not yet implemented, planned for Phase 1-2)
+### Quick Start (Browser Dev Mode)
 
 ```bash
-# Initialize Tauri project (requires npm)
-npm create tauri-app@latest
-
 # Install dependencies
-npm install && cd backend && pip install -r requirements.txt
+npm install
+pip3 install -r backend/requirements.txt
 
-# Development mode (watches frontend, rebuilds Python backend on changes)
-npm run tauri dev
+# Terminal 1: Start frontend
+npm run dev
 
-# Build for distribution (requires native build environment)
-npm run tauri build
+# Terminal 2: Start backend
+cd backend/src && python3 server.py
+# Note the SERVER_PORT=<PORT> output
 
-# Test Python backend independently
-cd backend && python -m pytest
-
-# Build Python executable with PyInstaller (manual)
-pyinstaller backend.spec
+# Open browser at: http://localhost:4321/?port=<PORT>
 ```
 
-### Typical Development Tasks
+### Full Tauri Development
 
-**Developing the editor UI:**
 ```bash
-npm run dev  # Astro dev server (frontend only)
+# Development mode (requires Rust toolchain + PyInstaller)
+npm run tauri:dev
+
+# Build for distribution
+npm run tauri:build
 ```
 
-**Testing backend independently:**
-```bash
-cd backend
-python server.py  # Prints SERVER_PORT=<PORT>
-# In another terminal: curl http://localhost:<PORT>/health
-```
+### Testing Backend
 
-**Full integration testing:**
 ```bash
-npm run tauri dev  # Starts Astro + Rust + Python with hot reload
-```
+cd backend/src
+python3 server.py  # Prints SERVER_PORT=<PORT>
 
-**Building for release:**
-```bash
-npm run tauri build  # Triggers PyInstaller, Tauri bundler, binary rename
+# Test health endpoint
+curl http://127.0.0.1:<PORT>/health
+
+# Test PDF generation
+curl -X POST http://127.0.0.1:<PORT>/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"output_filename":"test.pdf","orientation":"portrait","color_mode":"RGB","pages":[{"page_number":1,"title":"Test","layout":"grid","products":[{"id":"1","name":"Product","price":9.99,"quantity":1}]}]}'
 ```
 
 ## Project Phases (Implementation Roadmap)
 
-The project is in **planning phase**. Planned implementation follows these phases:
-
-1. **Phase 1: Backend Core** - Python FastAPI server with WeasyPrint, port binding, health checks
-2. **Phase 2: Python Bundling** - PyInstaller configuration, GTK3 dependency hooks, binary renaming script
-3. **Phase 3: Rust Integration** - Tauri sidecar lifecycle, capabilities, port discovery, event emission
-4. **Phase 4: Frontend Integration** - Astro editor, backend handshake, PDF export workflow
-5. **Phase 5: Build Pipeline** - CI/CD, cross-platform compilation
-6. **Phase 6: Distribution** - Signing, installers, auto-updates
-7. **Phase 7: Optimization** - Performance tuning, memory management
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1. Backend Core | FastAPI server, fpdf2 PDF generation, port binding | ✅ Done |
+| 2. Python Bundling | PyInstaller config, binary renaming | ✅ Done |
+| 3. Rust Integration | Tauri sidecar, capabilities, port discovery | ✅ Done |
+| 4. Frontend Integration | Astro editor, backend handshake, PDF export | ✅ Done |
+| 5. Build Pipeline | CI/CD, cross-platform compilation | ✅ Done |
+| 6. Distribution | Signing, installers, auto-updates | 🔄 Pending |
+| 7. Optimization | Performance tuning, memory management | 🔄 Pending |
 
 ## Code Standards
 
@@ -139,10 +136,11 @@ The project is in **planning phase**. Planned implementation follows these phase
 
 ## Known Issues & Considerations
 
-### Windows: GTK3 "DLL Hell"
-WeasyPrint depends on GTK3 libraries (Pango, Cairo, GDK-Pixbuf). PyInstaller may miss dynamic imports.
-- **Solution:** Create PyInstaller hook for weasyprint; bundle GTK3 DLLs in `_internal` directory
-- **Fallback:** Document system GTK3 installation requirement in README
+### PDF Library Choice
+Originally planned for WeasyPrint, but switched to fpdf2 due to:
+- WeasyPrint requires GTK3/Pango libraries (difficult on newer macOS)
+- fpdf2 is pure Python with no external dependencies
+- Trade-off: fpdf2 uses "EUR" instead of € symbol (font limitation)
 
 ### Zombie Processes
 If Tauri app terminates unexpectedly, Python sidecar may remain running.
@@ -161,7 +159,7 @@ Building Windows binaries on Linux/macOS is complex for Python+GTK applications.
 - **Tauri v2 Docs:** https://v2.tauri.app/
 - **Tauri Sidecar Guide:** https://v2.tauri.app/develop/sidecar/
 - **FastAPI Docs:** https://fastapi.tiangolo.com/
-- **WeasyPrint Docs:** https://doc.courtbouillon.org/weasyprint/
+- **fpdf2 Docs:** https://py-pdf.github.io/fpdf2/
 - **Astro Docs:** https://docs.astro.build/
 - **PyInstaller Docs:** https://pyinstaller.org/
 
@@ -177,6 +175,7 @@ When implementing features or fixing bugs:
 
 ## Project Status
 
-- **Current:** Planning & specification phase (architecture documented)
-- **Next:** Backend core implementation (Phase 1)
-- **Constraint:** Tauri v2 is rapidly evolving; always verify against v2.tauri.app docs, not v1 or community tutorials
+- **Current:** Werkend prototype (Fase 1-5 voltooid)
+- **Next:** Distribution (Fase 6) - signing, installers
+- **Browser dev mode:** Volledig functioneel op http://localhost:4321/?port=<PORT>
+- **Tauri mode:** Vereist PyInstaller build voor sidecar binary
