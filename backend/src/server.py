@@ -7,6 +7,7 @@ from typing import Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -31,6 +32,15 @@ app = FastAPI(
     title="NSAanbiedingen Backend",
     description="PDF generation service for offer folders",
     version="0.1.0",
+)
+
+# Add CORS middleware for browser dev mode
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4321", "http://127.0.0.1:4321", "tauri://localhost"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Store PDF generation jobs in memory (in production, use a proper queue)
