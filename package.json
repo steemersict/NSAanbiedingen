@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "dev:full": "./dev.sh",
     "build": "astro build",
     "preview": "astro preview",
     "build:backend": "cd backend && pyinstaller backend.spec --clean",
