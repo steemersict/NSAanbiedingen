@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "build:backend": "cd backend && pyinstaller backend.spec --clean",
-    "build:rename": "node scripts/rename-sidecar.js",
+    "build:rename": "node scripts/rename-sidecar.cjs",
     "build:sidecar": "npm run build:backend && npm run build:rename",
     "tauri": "tauri",
     "tauri:dev": "npm run build:sidecar && tauri dev",
