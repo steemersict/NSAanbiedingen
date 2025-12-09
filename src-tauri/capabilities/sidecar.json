@@ -1,0 +1,19 @@
+{
+  "$schema": "https://v2.tauri.app/schemas/capability.json",
+  "identifier": "sidecar-capability",
+  "description": "Allows spawning and managing the Python backend sidecar process",
+  "windows": ["main"],
+  "permissions": [
+    "shell:allow-execute",
+    "shell:allow-spawn",
+    {
+      "identifier": "shell:allow-sidecar",
+      "allow": [
+        {
+          "sidecar": "backend",
+          "args": "*"
+        }
+      ]
+    }
+  ]
+}

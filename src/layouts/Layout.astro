@@ -1,0 +1,128 @@
+---
+import "@/styles/global.css";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "NSAanbiedingen - PDF Offer Folder Generator" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Generate professional PDF offer folders" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body class="bg-white text-gray-900 font-sans">
+    <div id="app">
+      <slot />
+    </div>
+
+    <script>
+      // Initialize Tauri
+      import { invoke } from "@tauri-apps/api/core";
+      import { listen } from "@tauri-apps/api/event";
+
+      // Wait for backend to be ready
+      let backendPort: number | null = null;
+
+      async function initializeApp() {
+        try {
+          // Request backend to start (if not already started)
+          const port = await invoke<number>("get_backend_port");
+          backendPort = port;
+          console.log("[App] Backend ready on port", port);
+          window.dispatchEvent(
+            new CustomEvent("backend-ready", { detail: { port } })
+          );
+        } catch (err) {
+          console.log("[App] Backend not ready yet, waiting for event...");
+
+          // Listen for backend-ready event
+          const unlisten = await listen("backend-ready", (event: any) => {
+            backendPort = event.payload.port;
+            console.log("[App] Backend ready on port", backendPort);
+            window.dispatchEvent(
+              new CustomEvent("backend-ready", { detail: { port: backendPort } })
+            );
+            unlisten();
+          });
+        }
+      }
+
+      // Initialize on page load
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initializeApp);
+      } else {
+        initializeApp();
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --color-primary: #0066cc;
+    --color-secondary: #f5f5f5;
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background-color: #fff;
+    color: #333;
+  }
+
+  body {
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    background: var(--color-primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  button:hover {
+    background-color: #0052a3;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://v2.tauri.app/schemas/tauri-config.json",
+  "productName": "NSAanbiedingen",
+  "identifier": "com.nsaanbiedingen.app",
+  "version": "0.1.0",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:4321",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "NSAanbiedingen - Aanbiedingenfolders Editor",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": [
+      "binaries/backend"
+    ]
+  },
+  "plugins": {
+    "shell": {
+      "active": true,
+      "scope": [
+        {
+          "name": "shell:allow-execute",
+          "permissions": ["execute"]
+        }
+      ]
+    },
+    "dialog": {
+      "active": true
+    },
+    "fs": {
+      "active": true,
+      "scope": [
+        "$TEMP",
+        "$HOME/Downloads"
+      ]
+    }
+  }
+}
