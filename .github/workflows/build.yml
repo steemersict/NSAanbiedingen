@@ -30,11 +30,6 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install system dependencies (macOS)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          brew install gtk+3 cairo pango gdk-pixbuf libffi
-
       - name: Install npm dependencies
         run: npm ci
 
@@ -47,7 +42,7 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          pytest tests/
+          pytest tests/ -v
 
       - name: Build sidecar binary
         run: npm run build:sidecar
