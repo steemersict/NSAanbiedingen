@@ -48,7 +48,7 @@ jobs:
         run: npm run build:sidecar
 
       - name: Build Tauri application
-        run: npm run tauri:build
+        run: npx tauri build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
