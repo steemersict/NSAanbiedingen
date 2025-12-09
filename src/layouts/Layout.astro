@@ -23,34 +23,66 @@ const { title = "NSAanbiedingen - PDF Offer Folder Generator" } = Astro.props;
     </div>
 
     <script>
-      // Initialize Tauri
-      import { invoke } from "@tauri-apps/api/core";
-      import { listen } from "@tauri-apps/api/event";
+      // Check if running in Tauri or browser
+      const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
       // Wait for backend to be ready
       let backendPort: number | null = null;
 
       async function initializeApp() {
-        try {
-          // Request backend to start (if not already started)
-          const port = await invoke<number>("get_backend_port");
-          backendPort = port;
-          console.log("[App] Backend ready on port", port);
-          window.dispatchEvent(
-            new CustomEvent("backend-ready", { detail: { port } })
-          );
-        } catch (err) {
-          console.log("[App] Backend not ready yet, waiting for event...");
+        if (isTauri) {
+          // Running in Tauri - use Tauri APIs
+          try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const { listen } = await import("@tauri-apps/api/event");
 
-          // Listen for backend-ready event
-          const unlisten = await listen("backend-ready", (event: any) => {
-            backendPort = event.payload.port;
-            console.log("[App] Backend ready on port", backendPort);
-            window.dispatchEvent(
-              new CustomEvent("backend-ready", { detail: { port: backendPort } })
-            );
-            unlisten();
-          });
+            try {
+              // Request backend to start (if not already started)
+              const port = await invoke<number>("get_backend_port");
+              backendPort = port;
+              console.log("[App] Backend ready on port", port);
+              window.dispatchEvent(
+                new CustomEvent("backend-ready", { detail: { port } })
+              );
+            } catch (err) {
+              console.log("[App] Backend not ready yet, waiting for event...");
+
+              // Listen for backend-ready event
+              const unlisten = await listen("backend-ready", (event: any) => {
+                backendPort = event.payload.port;
+                console.log("[App] Backend ready on port", backendPort);
+                window.dispatchEvent(
+                  new CustomEvent("backend-ready", { detail: { port: backendPort } })
+                );
+                unlisten();
+              });
+            }
+          } catch (e) {
+            console.error("[App] Failed to load Tauri APIs:", e);
+          }
+        } else {
+          // Running in browser - use dev mode with hardcoded port
+          // In dev mode, backend runs on a dynamic port - check common dev ports
+          const devPort = 54618; // Will be updated dynamically
+          console.log("[App] Running in browser dev mode");
+
+          // Try to find the backend port from URL params or use default
+          const urlParams = new URLSearchParams(window.location.search);
+          backendPort = parseInt(urlParams.get('port') || '') || devPort;
+
+          // Check if backend is running
+          try {
+            const response = await fetch(`http://127.0.0.1:${backendPort}/health`);
+            if (response.ok) {
+              console.log("[App] Backend ready on port", backendPort);
+              window.dispatchEvent(
+                new CustomEvent("backend-ready", { detail: { port: backendPort } })
+              );
+            }
+          } catch (e) {
+            console.warn("[App] Backend not available. Start it with: cd backend/src && python3 server.py");
+            console.warn("[App] Then reload with ?port=<PORT> in the URL");
+          }
         }
       }
 
