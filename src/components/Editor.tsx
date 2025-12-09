@@ -63,21 +63,45 @@ export default function Editor() {
   });
 
   useEffect(() => {
-    // Check for backend port from localStorage
+    // Listen for backend-ready event from Layout.astro
+    const handleBackendReady = (event: CustomEvent<{ port: number }>) => {
+      const backendPort = event.detail.port;
+      setPort(backendPort);
+      setBackendStatus("connected");
+      localStorage.setItem("backend-port", backendPort.toString());
+      console.log("[Editor] Backend connected on port:", backendPort);
+    };
+
+    window.addEventListener("backend-ready", handleBackendReady as EventListener);
+
+    // Check for backend port from localStorage (fallback)
     const storedPort = localStorage.getItem("backend-port");
     if (storedPort) {
-      setPort(parseInt(storedPort));
-      setBackendStatus("connected");
-      console.log("[Editor] Backend connected on port:", storedPort);
+      const portNum = parseInt(storedPort);
+      // Verify the stored port is still valid
+      fetch(`http://127.0.0.1:${portNum}/health`)
+        .then((res) => {
+          if (res.ok) {
+            setPort(portNum);
+            setBackendStatus("connected");
+            console.log("[Editor] Backend connected on port:", portNum);
+          } else {
+            throw new Error("Backend not responding");
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("backend-port");
+          setBackendStatus("loading");
+          console.log("[Editor] Stored port invalid, waiting for backend...");
+        });
     } else {
       setBackendStatus("loading");
-      // Try to check if we can reach the backend
-      const checkBackend = async () => {
-        // In a real app, we'd check multiple ports or wait for a custom event
-        console.log("[Editor] Waiting for backend initialization...");
-      };
-      checkBackend();
+      console.log("[Editor] Waiting for backend initialization...");
     }
+
+    return () => {
+      window.removeEventListener("backend-ready", handleBackendReady as EventListener);
+    };
   }, []);
 
   const handleAddProduct = () => {
