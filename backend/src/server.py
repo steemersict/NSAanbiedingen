@@ -10,9 +10,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .models import ErrorResponse, GeneratePDFRequest, GeneratePDFResponse, HealthResponse
-from .pdf_generator import generate_pdf
-from .utils import announce_port, cleanup_temp_files, get_free_port, get_temp_pdf_dir
+try:
+    from .models import ErrorResponse, GeneratePDFRequest, GeneratePDFResponse, HealthResponse
+    from .pdf_generator import generate_pdf
+    from .utils import announce_port, cleanup_temp_files, get_free_port, get_temp_pdf_dir
+except ImportError:
+    from models import ErrorResponse, GeneratePDFRequest, GeneratePDFResponse, HealthResponse
+    from pdf_generator import generate_pdf
+    from utils import announce_port, cleanup_temp_files, get_free_port, get_temp_pdf_dir
 
 # Configure logging
 logging.basicConfig(
