@@ -6,14 +6,7 @@
   "permissions": [
     "shell:allow-execute",
     "shell:allow-spawn",
-    {
-      "identifier": "shell:allow-sidecar",
-      "allow": [
-        {
-          "sidecar": "backend",
-          "args": "*"
-        }
-      ]
-    }
+    "shell:allow-kill",
+    "shell:allow-stdin-write"
   ]
 }
