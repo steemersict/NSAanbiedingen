@@ -35,8 +35,9 @@
       "active": true,
       "scope": [
         {
-          "name": "shell:allow-execute",
-          "permissions": ["execute"]
+          "name": "backend",
+          "sidecar": true,
+          "args": true
         }
       ]
     },
