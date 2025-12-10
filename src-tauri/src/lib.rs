@@ -1,14 +1,12 @@
 use serde_json::json;
 use std::sync::Arc;
-use tauri::ipc::Request;
-use tauri::http::status::StatusCode;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 use tokio::sync::RwLock;
 
 /// Global state to store backend port
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BackendState {
     port: Arc<RwLock<Option<u16>>>,
 }
@@ -21,7 +19,7 @@ async fn get_backend_port(state: State<'_, BackendState>) -> Result<u16, String>
 }
 
 /// Initialize and start the backend sidecar
-async fn start_backend_sidecar(app: AppHandle, state: Arc<BackendState>) {
+async fn start_backend_sidecar(app: AppHandle, state: BackendState) {
     let shell = app.shell();
 
     // Spawn the backend sidecar process
