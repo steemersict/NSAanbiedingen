@@ -13,7 +13,7 @@ jobs:
         include:
           - platform: macos-latest
             arch: aarch64
-          - platform: macos-13
+          - platform: macos-15-large
             arch: x86_64
           - platform: windows-latest
             arch: x86_64
